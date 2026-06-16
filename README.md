@@ -33,7 +33,12 @@ git tag v0.1.0 && git push origin v0.1.0
 First-launch warnings to tell friends about:
 
 - **Windows**: SmartScreen → *More info → Run anyway*
-- **macOS**: Right-click → **Open** → **Open**
+- **macOS**: Gatekeeper will say *"Apple could not verify MusicDownloader is
+  free of malware."* Two ways to bypass (unsigned app):
+  1. Try to open → click **Done** on the dialog → open **System Settings →
+     Privacy & Security** → scroll down → click **Open Anyway** next to the
+     MusicDownloader message → confirm. Future launches just work.
+  2. Or, in Terminal: `xattr -dr com.apple.quarantine /path/to/MusicDownloader`
 
 ## Legal
 
