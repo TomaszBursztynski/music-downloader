@@ -1,35 +1,11 @@
 # Music Downloader
 
-A simple, cross-platform desktop app for downloading music from public YouTube
-playlists (and, later, sources like Tidal). Built with **Avalonia + .NET 10**,
-so the same codebase runs on **macOS, Windows, and Linux**.
+Tiny cross-platform desktop app (Avalonia + .NET 10) that wraps `yt-dlp` +
+`ffmpeg`. Paste a YouTube link, pick a format, hit **Pobierz**.
 
-Designed for non-technical users:
+`yt-dlp` and `ffmpeg` are downloaded automatically on first run.
 
-- Paste a link → click **Download**. That's it.
-- No installs to fight with: `yt-dlp` and `ffmpeg` are fetched automatically on
-  first run into the user's local app data folder.
-- Sensible defaults (MP3 at the highest available quality, embedded album art
-  - metadata), with M4A and "keep original best" as alternatives.
-
-## How it works
-
-| Layer                            | What it does                                                                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `Services/IMusicSource.cs`       | Abstraction over a music provider. Add Tidal/SoundCloud/etc. by writing one new class.                                       |
-| `Services/YouTubeMusicSource.cs` | yt-dlp + ffmpeg wrapper via [`YoutubeDLSharp`](https://github.com/Bluegrams/YoutubeDLSharp). Cross-platform binary handling. |
-| `ViewModels/MainViewModel.cs`    | MVVM glue (CommunityToolkit.Mvvm). UI-framework-agnostic — folder picker is injected as a delegate.                          |
-| `Views/MainWindow.axaml`         | Single-page Avalonia UI: link box, folder picker, format dropdown, big download button, per-track progress list.             |
-| `App.axaml.cs`                   | Composes the sources and wires Avalonia's `StorageProvider` into the view model.                                             |
-
-## Requirements
-
-- **Build & run:** [.NET 10 SDK](https://dotnet.microsoft.com/download). Works on
-  macOS, Linux, and Windows.
-- On first launch the app downloads `yt-dlp` (~10 MB) and `ffmpeg` (~90 MB) into
-  the appropriate per-user folder. Internet required for that first run only.
-
-## Run
+## Run from source
 
 ```bash
 dotnet run --project src/MusicDownloader/MusicDownloader.csproj
@@ -37,74 +13,28 @@ dotnet run --project src/MusicDownloader/MusicDownloader.csproj
 
 ## Format
 
-The repo uses [CSharpier](https://csharpier.com) (installed as a local .NET
-tool, pinned in `.config/dotnet-tools.json`).
-
-First clone — restore the local tools:
-
 ```bash
-dotnet tool restore
-```
-
-Format everything (equivalent to `npm run format`):
-
-```bash
+dotnet tool restore        # first time only
 dotnet csharpier format .
 ```
 
-Check only (CI-friendly, exits non-zero on diffs):
+## Release
 
 ```bash
-dotnet csharpier check .
+./scripts/release.sh       # builds win-x64, osx-arm64, osx-x64 zips into ./dist
 ```
 
-## Publish a single-file binary
-
-**Windows (.exe)**
+Or push a tag to build & publish a GitHub Release with all three zips:
 
 ```bash
-dotnet publish src/MusicDownloader/MusicDownloader.csproj \
-    -c Release -r win-x64 --self-contained true \
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+git tag v0.1.0 && git push origin v0.1.0
 ```
 
-**macOS (Apple Silicon)**
+First-launch warnings to tell friends about:
 
-```bash
-dotnet publish src/MusicDownloader/MusicDownloader.csproj \
-    -c Release -r osx-arm64 --self-contained true \
-    -p:PublishSingleFile=true
-```
-
-**macOS (Intel)**
-
-```bash
-dotnet publish src/MusicDownloader/MusicDownloader.csproj \
-    -c Release -r osx-x64 --self-contained true \
-    -p:PublishSingleFile=true
-```
-
-Output lives under `src/MusicDownloader/bin/Release/net10.0/<rid>/publish/`.
-
-## Adding a new source (e.g. Tidal)
-
-1. Implement `IMusicSource` in `src/MusicDownloader/Services/`.
-2. Register it in `App.axaml.cs`:
-
-   ```csharp
-   var sources = new IMusicSource[]
-   {
-       new YouTubeMusicSource(),
-       new TidalMusicSource(/* creds */),
-   };
-   ```
-
-The view model automatically routes URLs to the first source whose
-`CanHandle` returns `true`.
+- **Windows**: SmartScreen → *More info → Run anyway*
+- **macOS**: Right-click → **Open** → **Open**
 
 ## Legal
 
-Only download content you have the right to download. YouTube's Terms of
-Service generally prohibit downloading without explicit permission unless a
-download button is provided by the service. This tool is for personal use with
-content you own or that is licensed for download.
+Only download content you have the right to download.

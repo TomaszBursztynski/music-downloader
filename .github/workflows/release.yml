@@ -1,0 +1,111 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (without leading v), e.g. 0.1.0"
+        required: true
+        default: "0.0.0"
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  PROJECT: src/MusicDownloader/MusicDownloader.csproj
+  APP_NAME: MusicDownloader
+
+jobs:
+  build:
+    name: build-${{ matrix.rid }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            ext: ".exe"
+          - os: macos-14
+            rid: osx-arm64
+            ext: ""
+          - os: macos-13
+            rid: osx-x64
+            ext: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="${{ github.event.inputs.version }}"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        shell: bash
+        run: |
+          dotnet publish "$PROJECT" \
+            -c Release \
+            -r "${{ matrix.rid }}" \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:EnableCompressionInSingleFile=true \
+            --nologo
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $out = "src/MusicDownloader/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          $zip = "dist/${{ env.APP_NAME }}-${{ steps.ver.outputs.version }}-${{ matrix.rid }}.zip"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path "$out/${{ env.APP_NAME }}${{ matrix.ext }}" -DestinationPath $zip -Force
+
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          out="src/MusicDownloader/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          zip="dist/${APP_NAME}-${{ steps.ver.outputs.version }}-${{ matrix.rid }}.zip"
+          mkdir -p dist
+          chmod +x "${out}/${APP_NAME}"
+          (cd "$out" && zip -9 -q "${GITHUB_WORKSPACE}/${zip}" "${APP_NAME}")
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APP_NAME }}-${{ matrix.rid }}
+          path: dist/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

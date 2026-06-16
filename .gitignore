@@ -39,3 +39,6 @@ artifacts/
 
 # Tools downloaded at runtime by Music Downloader (yt-dlp.exe, ffmpeg.exe)
 tools/
+
+# Release artifacts produced by scripts/release.sh
+dist/
