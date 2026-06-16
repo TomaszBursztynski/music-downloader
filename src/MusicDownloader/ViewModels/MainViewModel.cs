@@ -121,7 +121,7 @@ public partial class MainViewModel : ObservableObject
         if (source is null)
         {
             StatusText =
-                "Ten link nie jest jeszcze obsługiwany. Wklej link z YouTube lub SoundCloud.";
+                "Ten link nie jest jeszcze obsługiwany. Wklej link z YouTube, SoundCloud lub Spotify.";
             return;
         }
 
@@ -178,6 +178,8 @@ public partial class MainViewModel : ObservableObject
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return "sieci";
         var host = uri.Host.ToLowerInvariant();
+        if (host.Contains("spotify"))
+            return "Spotify";
         if (host.Contains("soundcloud") || host.Contains("snd.sc"))
             return "SoundCloud";
         if (host.Contains("youtube") || host.Contains("youtu.be"))

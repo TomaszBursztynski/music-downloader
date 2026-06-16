@@ -1,9 +1,17 @@
 # Music Downloader
 
-Tiny cross-platform desktop app (Avalonia + .NET 10) that wraps `yt-dlp` +
-`ffmpeg`. Paste a YouTube link, pick a format, hit **Pobierz**.
+Tiny cross-platform desktop app (Avalonia + .NET 10) that wraps `yt-dlp`,
+`ffmpeg`, and `spotdl`. Paste a **YouTube / SoundCloud / Spotify** link, pick
+a format, hit **Pobierz**.
 
-`yt-dlp` and `ffmpeg` are downloaded automatically on first run.
+`yt-dlp`, `ffmpeg`, and `spotdl` are downloaded automatically on first run
+on Windows. On macOS, `yt-dlp` and `ffmpeg` come from Homebrew
+(`brew install yt-dlp ffmpeg`); `spotdl` is downloaded automatically on
+first Spotify use.
+
+Spotify links are handled by [spotDL](https://github.com/spotDL/spotify-downloader),
+which resolves each track on Spotify and downloads the matching audio from
+YouTube Music — no Spotify credentials required.
 
 ## Run from source
 

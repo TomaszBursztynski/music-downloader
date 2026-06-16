@@ -25,6 +25,10 @@ public sealed class YtDlpMusicSource : IMusicSource
 
     public string DisplayName => "YouTube / SoundCloud";
 
+    public string FfmpegPath => _ffmpegPath;
+
+    public string ToolsDirectory => _toolsDirectory;
+
     public bool CanHandle(string url)
     {
         if (string.IsNullOrWhiteSpace(url))
@@ -128,32 +132,9 @@ public sealed class YtDlpMusicSource : IMusicSource
         return new DownloadResult(downloadedFiles.Count, 0, outputFolder, Array.Empty<string>());
     }
 
-    private List<string> BuildDownloadArgs(DownloadRequest request, string outputFolder)
+    private static void AppendFormatArgs(List<string> args, AudioFormatChoice format)
     {
-        var args = new List<string>
-        {
-            "--ffmpeg-location",
-            _ffmpegPath,
-            "--paths",
-            outputFolder,
-            "--output",
-            "%(title)s.%(ext)s",
-            "--ignore-errors",
-            "--no-overwrites",
-            "--no-warnings",
-            "--newline",
-            "--progress",
-            "--extract-audio",
-            "--format",
-            "bestaudio/best",
-        };
-
-        if (request.EmbedThumbnail)
-            args.Add("--embed-thumbnail");
-        if (request.EmbedMetadata)
-            args.Add("--embed-metadata");
-
-        switch (request.Format)
+        switch (format)
         {
             case AudioFormatChoice.Mp3_320:
                 args.AddRange(
@@ -184,6 +165,34 @@ public sealed class YtDlpMusicSource : IMusicSource
                 args.AddRange(new[] { "--audio-format", "best" });
                 break;
         }
+    }
+
+    private List<string> BuildDownloadArgs(DownloadRequest request, string outputFolder)
+    {
+        var args = new List<string>
+        {
+            "--ffmpeg-location",
+            _ffmpegPath,
+            "--paths",
+            outputFolder,
+            "--output",
+            "%(title)s.%(ext)s",
+            "--ignore-errors",
+            "--no-overwrites",
+            "--no-warnings",
+            "--newline",
+            "--progress",
+            "--extract-audio",
+            "--format",
+            "bestaudio/best",
+        };
+
+        if (request.EmbedThumbnail)
+            args.Add("--embed-thumbnail");
+        if (request.EmbedMetadata)
+            args.Add("--embed-metadata");
+
+        AppendFormatArgs(args, request.Format);
 
         args.Add("--print");
         args.Add("after_move:filepath");

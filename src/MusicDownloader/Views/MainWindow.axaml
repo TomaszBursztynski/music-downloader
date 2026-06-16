@@ -75,7 +75,7 @@
       <TextBox
         Text="{Binding PlaylistUrl, Mode=TwoWay}"
         IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
-        Watermark="https://www.youtube.com/playlist?list=...  lub  https://soundcloud.com/..."
+        Watermark="YouTube / SoundCloud / Spotify (link do utworu, albumu lub playlisty)"
       />
     </StackPanel>
 

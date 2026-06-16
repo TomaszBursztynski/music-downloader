@@ -16,7 +16,8 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var sources = new IMusicSource[] { new YtDlpMusicSource() };
+            var ytdlp = new YtDlpMusicSource();
+            var sources = new IMusicSource[] { new SpotifyMusicSource(ytdlp), ytdlp };
             var settingsService = new SettingsService();
             var vm = new MainViewModel(sources, settingsService);
             vm.ApplyPersistedSettings(settingsService.Load());
