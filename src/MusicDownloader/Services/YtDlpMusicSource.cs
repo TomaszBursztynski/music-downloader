@@ -5,14 +5,14 @@ using System.Text.Json;
 
 namespace MusicDownloader.Services;
 
-public sealed class YouTubeMusicSource : IMusicSource
+public sealed class YtDlpMusicSource : IMusicSource
 {
     private readonly string _toolsDirectory;
     private string _ytDlpPath = string.Empty;
     private string _ffmpegPath = string.Empty;
     private bool _ready;
 
-    public YouTubeMusicSource(string? toolsDirectory = null)
+    public YtDlpMusicSource(string? toolsDirectory = null)
     {
         _toolsDirectory =
             toolsDirectory
@@ -23,7 +23,7 @@ public sealed class YouTubeMusicSource : IMusicSource
             );
     }
 
-    public string DisplayName => "YouTube";
+    public string DisplayName => "YouTube / SoundCloud";
 
     public bool CanHandle(string url)
     {
@@ -34,7 +34,9 @@ public sealed class YouTubeMusicSource : IMusicSource
         var host = uri.Host.ToLowerInvariant();
         return host.Contains("youtube.com")
             || host.Contains("youtu.be")
-            || host.Contains("music.youtube.com");
+            || host.Contains("music.youtube.com")
+            || host.Contains("soundcloud.com")
+            || host.Contains("snd.sc");
     }
 
     public async Task EnsureReadyAsync(

@@ -120,13 +120,14 @@ public partial class MainViewModel : ObservableObject
         var source = _sources.FirstOrDefault(s => s.CanHandle(PlaylistUrl));
         if (source is null)
         {
-            StatusText = "Ten link nie jest jeszcze obsługiwany. Wklej link z YouTube.";
+            StatusText =
+                "Ten link nie jest jeszcze obsługiwany. Wklej link z YouTube lub SoundCloud.";
             return;
         }
 
         ClearLog();
         IsBusy = true;
-        StatusText = $"Pobieranie z {source.DisplayName}…";
+        StatusText = $"Pobieranie z {FriendlySourceName(PlaylistUrl)}…";
         _cts = new CancellationTokenSource();
 
         try
@@ -171,4 +172,16 @@ public partial class MainViewModel : ObservableObject
     }
 
     private void ClearLog() => LogLines.Clear();
+
+    private static string FriendlySourceName(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return "sieci";
+        var host = uri.Host.ToLowerInvariant();
+        if (host.Contains("soundcloud") || host.Contains("snd.sc"))
+            return "SoundCloud";
+        if (host.Contains("youtube") || host.Contains("youtu.be"))
+            return "YouTube";
+        return host;
+    }
 }

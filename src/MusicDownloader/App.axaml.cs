@@ -16,7 +16,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var sources = new IMusicSource[] { new YouTubeMusicSource() };
+            var sources = new IMusicSource[] { new YtDlpMusicSource() };
             var settingsService = new SettingsService();
             var vm = new MainViewModel(sources, settingsService);
             vm.ApplyPersistedSettings(settingsService.Load());

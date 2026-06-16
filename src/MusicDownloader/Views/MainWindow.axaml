@@ -75,7 +75,7 @@
       <TextBox
         Text="{Binding PlaylistUrl, Mode=TwoWay}"
         IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
-        Watermark="https://www.youtube.com/playlist?list=..."
+        Watermark="https://www.youtube.com/playlist?list=...  lub  https://soundcloud.com/..."
       />
     </StackPanel>
 
@@ -128,7 +128,7 @@
       <TextBlock
         Foreground="{StaticResource WarnBrush}"
         TextWrapping="Wrap"
-        Text="⚠ Wybrałeś format bezstratny (WAV / FLAC / AIFF). Można go użyć, ale źródło z YouTube jest stratne — jakość dźwięku NIE będzie lepsza, a plik będzie kilka razy większy."
+        Text="⚠ Wybrałeś format bezstratny (WAV / FLAC / AIFF). Można go użyć, ale źródło z YouTube / SoundCloud jest stratne — jakość dźwięku NIE będzie lepsza, a plik będzie kilka razy większy."
       />
     </Border>
 
