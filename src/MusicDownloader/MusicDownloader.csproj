@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <RootNamespace>MusicDownloader</RootNamespace>
+    <AssemblyName>MusicDownloader</AssemblyName>
+    <Version>0.1.0</Version>
+    <Product>Music Downloader</Product>
+    <AssemblyTitle>Music Downloader</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.2" />
+    <!-- Diagnostics (live tree etc.) only during Debug builds. -->
+    <PackageReference
+      Include="Avalonia.Diagnostics"
+      Version="11.2.2"
+      Condition="'$(Configuration)' == 'Debug'"
+    />
+
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="YoutubeDLSharp" Version="1.1.2" />
+
+    <!--
+      Avalonia pulls in Tmds.DBus.Protocol 0.20.0 transitively (Linux D-Bus).
+      That version has GHSA-xrw6-gwf8-vvr9. Pin a patched version.
+    -->
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+  </ItemGroup>
+</Project>
