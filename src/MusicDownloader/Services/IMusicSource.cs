@@ -10,7 +10,7 @@ public interface IMusicSource
 
     Task<DownloadResult> DownloadAsync(
         DownloadRequest request,
-        IProgress<TrackProgress> progress,
+        IProgress<string> log,
         CancellationToken cancellationToken
     );
 }

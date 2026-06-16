@@ -1,15 +1,18 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="clr-namespace:MusicDownloader.ViewModels"
-        xmlns:svc="clr-namespace:MusicDownloader.Services"
-        x:Class="MusicDownloader.Views.MainWindow"
-        x:DataType="vm:MainViewModel"
-        Title="Music Downloader"
-        Width="820" Height="680"
-        MinWidth="640" MinHeight="520"
-        WindowStartupLocation="CenterScreen"
-        Background="White">
-
+<Window
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="clr-namespace:MusicDownloader.ViewModels"
+  xmlns:svc="clr-namespace:MusicDownloader.Services"
+  x:Class="MusicDownloader.Views.MainWindow"
+  x:DataType="vm:MainViewModel"
+  Title="Music Downloader"
+  Width="900"
+  Height="720"
+  MinWidth="680"
+  MinHeight="560"
+  WindowStartupLocation="CenterScreen"
+  Background="White"
+>
   <Window.Resources>
     <svc:AudioFormatLabelConverter x:Key="AudioFormatLabelConverter" />
     <svc:NotConverter x:Key="NotConverter" />
@@ -18,10 +21,11 @@
 
     <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
     <SolidColorBrush x:Key="MutedBrush" Color="#6B7280" />
-    <SolidColorBrush x:Key="SurfaceBrush" Color="#FAFAFA" />
     <SolidColorBrush x:Key="BorderBrush" Color="#E5E7EB" />
     <SolidColorBrush x:Key="WarnBrush" Color="#B45309" />
     <SolidColorBrush x:Key="WarnBgBrush" Color="#FEF3C7" />
+    <SolidColorBrush x:Key="ConsoleBgBrush" Color="#0F172A" />
+    <SolidColorBrush x:Key="ConsoleFgBrush" Color="#E2E8F0" />
   </Window.Resources>
 
   <Window.Styles>
@@ -56,41 +60,52 @@
   </Window.Styles>
 
   <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
-
     <StackPanel Grid.Row="0" Margin="0,0,0,18">
       <TextBlock Text="Music Downloader by CALL FRASER" FontSize="26" FontWeight="SemiBold" />
-      <TextBlock Text="Wklej link do playlisty lub filmu z YouTube i kliknij Pobierz."
-                 Foreground="{StaticResource MutedBrush}" FontSize="13" Margin="0,4,0,0" />
+      <TextBlock
+        Text="Wklej link i kliknij Pobierz."
+        Foreground="{StaticResource MutedBrush}"
+        FontSize="13"
+        Margin="0,4,0,0"
+      />
     </StackPanel>
 
     <StackPanel Grid.Row="1" Margin="0,0,0,14">
       <TextBlock Classes="label" Text="Link" />
-      <TextBox Text="{Binding PlaylistUrl, Mode=TwoWay}"
-               IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
-               Watermark="https://www.youtube.com/playlist?list=..." />
+      <TextBox
+        Text="{Binding PlaylistUrl, Mode=TwoWay}"
+        IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
+        Watermark="https://www.youtube.com/playlist?list=..."
+      />
     </StackPanel>
 
     <Grid Grid.Row="2" Margin="0,0,0,16" ColumnDefinitions="*,12,280">
       <StackPanel Grid.Column="0">
         <TextBlock Classes="label" Text="Zapisz do" />
         <Grid ColumnDefinitions="*,8,Auto,8,Auto">
-          <TextBox Grid.Column="0"
-                   Text="{Binding OutputDirectory, Mode=TwoWay}"
-                   IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}" />
-          <Button Grid.Column="2" Content="Przeglądaj..."
-                  Command="{Binding BrowseOutputDirectoryCommand}"
-                  IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}" />
-          <Button Grid.Column="4" Content="Otwórz"
-                  Command="{Binding OpenOutputDirectoryCommand}" />
+          <TextBox
+            Grid.Column="0"
+            Text="{Binding OutputDirectory, Mode=TwoWay}"
+            IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
+          />
+          <Button
+            Grid.Column="2"
+            Content="Przeglądaj..."
+            Command="{Binding BrowseOutputDirectoryCommand}"
+            IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
+          />
+          <Button Grid.Column="4" Content="Otwórz" Command="{Binding OpenOutputDirectoryCommand}" />
         </Grid>
       </StackPanel>
 
       <StackPanel Grid.Column="2">
         <TextBlock Classes="label" Text="Format" />
-        <ComboBox ItemsSource="{Binding Formats}"
-                  SelectedItem="{Binding Format}"
-                  HorizontalAlignment="Stretch"
-                  IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}">
+        <ComboBox
+          ItemsSource="{Binding Formats}"
+          SelectedItem="{Binding Format}"
+          HorizontalAlignment="Stretch"
+          IsEnabled="{Binding IsBusy, Converter={StaticResource NotConverter}}"
+        >
           <ComboBox.ItemTemplate>
             <DataTemplate>
               <TextBlock Text="{Binding Converter={StaticResource AudioFormatLabelConverter}}" />
@@ -100,87 +115,84 @@
       </StackPanel>
     </Grid>
 
-    <Border Grid.Row="3" Margin="0,0,0,12"
-            Padding="12,8"
-            CornerRadius="6"
-            Background="{StaticResource WarnBgBrush}"
-            BorderBrush="{StaticResource WarnBrush}"
-            BorderThickness="1"
-            IsVisible="{Binding IsLosslessFormatSelected}">
-      <TextBlock Foreground="{StaticResource WarnBrush}"
-                 TextWrapping="Wrap"
-                 Text="⚠ Wybrałeś format bezstratny (WAV / FLAC / AIFF). Można go użyć, ale źródło z YouTube jest stratne — jakość dźwięku NIE będzie lepsza, a plik będzie kilka razy większy." />
+    <Border
+      Grid.Row="3"
+      Margin="0,0,0,12"
+      Padding="12,8"
+      CornerRadius="6"
+      Background="{StaticResource WarnBgBrush}"
+      BorderBrush="{StaticResource WarnBrush}"
+      BorderThickness="1"
+      IsVisible="{Binding IsLosslessFormatSelected}"
+    >
+      <TextBlock
+        Foreground="{StaticResource WarnBrush}"
+        TextWrapping="Wrap"
+        Text="⚠ Wybrałeś format bezstratny (WAV / FLAC / AIFF). Można go użyć, ale źródło z YouTube jest stratne — jakość dźwięku NIE będzie lepsza, a plik będzie kilka razy większy."
+      />
     </Border>
 
     <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,16" Spacing="10">
-      <Button Classes="action primary"
-              Content="{Binding IsBusy, Converter={StaticResource BusyLabelConverter}}"
-              Command="{Binding DownloadCommand}" />
-      <Button Classes="action"
-              Content="Anuluj"
-              Command="{Binding CancelCommand}" />
+      <Button
+        Classes="action primary"
+        Content="{Binding IsBusy, Converter={StaticResource BusyLabelConverter}}"
+        Command="{Binding DownloadCommand}"
+      />
+      <Button Classes="action" Content="Anuluj" Command="{Binding CancelCommand}" />
+      <ProgressBar
+        IsIndeterminate="True"
+        IsVisible="{Binding IsBusy}"
+        VerticalAlignment="Center"
+        Width="220"
+        Height="6"
+        Foreground="{StaticResource AccentBrush}"
+      />
     </StackPanel>
 
-    <Border Grid.Row="5"
-            BorderBrush="{StaticResource BorderBrush}"
-            BorderThickness="1"
-            CornerRadius="6"
-            Background="{StaticResource SurfaceBrush}"
-            ClipToBounds="True">
-      <Grid RowDefinitions="Auto,*">
-
-        <Border Grid.Row="0"
-                Padding="14,12"
-                Background="#F5F8FF"
-                BorderBrush="{StaticResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                IsVisible="{Binding IsBusy}">
-          <StackPanel Orientation="Vertical">
-            <TextBlock Text="{Binding StatusText}"
-                       Foreground="{StaticResource AccentBrush}"
-                       FontWeight="SemiBold" />
-            <ProgressBar IsIndeterminate="True"
-                         Margin="0,8,0,0"
-                         Height="4"
-                         Foreground="{StaticResource AccentBrush}" />
-          </StackPanel>
-        </Border>
-
-        <Panel Grid.Row="1">
-          <TextBlock Text="Utwory pojawią się tutaj po rozpoczęciu pobierania."
-                     HorizontalAlignment="Center" VerticalAlignment="Center"
-                     Foreground="{StaticResource MutedBrush}"
-                     IsVisible="{Binding Tracks.Count, Converter={StaticResource CountToEmptyConverter}}" />
-          <ListBox ItemsSource="{Binding Tracks}"
-                   Background="Transparent"
-                   BorderThickness="0"
-                   ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListBox.ItemTemplate>
-              <DataTemplate DataType="svc:TrackProgress">
-                <Border Padding="12,10" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                  <Grid RowDefinitions="Auto,Auto">
-                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
-                      <TextBlock Grid.Column="0" Text="{Binding Title}"
-                                 TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
-                      <TextBlock Grid.Column="1" Text="{Binding Status}" Margin="12,0,12,0"
-                                 Foreground="{StaticResource MutedBrush}" />
-                      <TextBlock Grid.Column="2" Text="{Binding Percent, StringFormat={}{0:0}%}"
-                                 Foreground="{StaticResource MutedBrush}" />
-                    </Grid>
-                    <ProgressBar Grid.Row="1" Margin="0,6,0,0" Height="6"
-                                 Minimum="0" Maximum="100"
-                                 Value="{Binding Percent, Mode=OneWay}"
-                                 Foreground="{StaticResource AccentBrush}" />
-                  </Grid>
-                </Border>
+    <Border
+      Grid.Row="5"
+      BorderBrush="{StaticResource BorderBrush}"
+      BorderThickness="1"
+      CornerRadius="6"
+      Background="{StaticResource ConsoleBgBrush}"
+      ClipToBounds="True"
+    >
+      <Panel>
+        <TextBlock
+          Text="Tu pojawi się postęp pobierania."
+          HorizontalAlignment="Center"
+          VerticalAlignment="Center"
+          Foreground="{StaticResource MutedBrush}"
+          IsVisible="{Binding LogLines.Count, Converter={StaticResource CountToEmptyConverter}}"
+        />
+        <ScrollViewer
+          x:Name="LogScroller"
+          HorizontalScrollBarVisibility="Auto"
+          VerticalScrollBarVisibility="Auto"
+          Padding="14,10"
+        >
+          <ItemsControl ItemsSource="{Binding LogLines}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <TextBlock
+                  Text="{Binding}"
+                  FontFamily="Menlo, Consolas, Courier New, monospace"
+                  FontSize="12"
+                  Foreground="{StaticResource ConsoleFgBrush}"
+                  TextWrapping="NoWrap"
+                />
               </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </Panel>
-      </Grid>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Panel>
     </Border>
 
-    <TextBlock Grid.Row="6" Margin="0,14,0,0"
-               Text="{Binding StatusText}" Foreground="{StaticResource MutedBrush}" />
+    <TextBlock
+      Grid.Row="6"
+      Margin="0,14,0,0"
+      Text="{Binding StatusText}"
+      Foreground="{StaticResource MutedBrush}"
+    />
   </Grid>
 </Window>

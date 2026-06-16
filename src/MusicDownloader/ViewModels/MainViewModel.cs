@@ -13,6 +13,8 @@ namespace MusicDownloader.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private const int MaxLogLines = 2000;
+
     private readonly IReadOnlyList<IMusicSource> _sources;
     private readonly SettingsService? _settings;
     private CancellationTokenSource? _cts;
@@ -66,7 +68,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _statusText = "Wklej link do playlisty lub filmu z YouTube, aby zacząć.";
 
-    public ObservableCollection<TrackProgress> Tracks { get; } = new();
+    public ObservableCollection<string> LogLines { get; } = new();
 
     public IReadOnlyList<AudioFormatChoice> Formats { get; } =
         new[]
@@ -122,20 +124,18 @@ public partial class MainViewModel : ObservableObject
             return;
         }
 
-        Tracks.Clear();
+        ClearLog();
         IsBusy = true;
-        StatusText = "Łączenie z YouTube, pobieranie listy utworów…";
+        StatusText = $"Pobieranie z {source.DisplayName}…";
         _cts = new CancellationTokenSource();
 
         try
         {
             await source.EnsureReadyAsync(null, _cts.Token);
 
-            StatusText = $"Pobieranie z {source.DisplayName}…";
-
-            var trackProgress = new Progress<TrackProgress>(UpsertTrack);
+            var log = new Progress<string>(AppendLog);
             var request = new DownloadRequest(PlaylistUrl.Trim(), OutputDirectory, Format);
-            var result = await source.DownloadAsync(request, trackProgress, _cts.Token);
+            var result = await source.DownloadAsync(request, log, _cts.Token);
 
             StatusText =
                 result.Failed == 0
@@ -163,16 +163,12 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanCancel))]
     private void Cancel() => _cts?.Cancel();
 
-    private void UpsertTrack(TrackProgress tp)
+    private void AppendLog(string line)
     {
-        for (int i = 0; i < Tracks.Count; i++)
-        {
-            if (string.Equals(Tracks[i].Title, tp.Title, StringComparison.OrdinalIgnoreCase))
-            {
-                Tracks[i] = tp;
-                return;
-            }
-        }
-        Tracks.Add(tp);
+        LogLines.Add(line);
+        while (LogLines.Count > MaxLogLines)
+            LogLines.RemoveAt(0);
     }
+
+    private void ClearLog() => LogLines.Clear();
 }

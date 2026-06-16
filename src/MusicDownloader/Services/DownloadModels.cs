@@ -8,14 +8,6 @@ public sealed record DownloadRequest(
     bool EmbedMetadata = true
 );
 
-public sealed record TrackProgress(
-    string Title,
-    double Percent,
-    string Status,
-    string? FilePath = null,
-    string? Error = null
-);
-
 public sealed record DownloadResult(
     int Succeeded,
     int Failed,

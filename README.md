@@ -35,6 +35,29 @@ Designed for non-technical users:
 dotnet run --project src/MusicDownloader/MusicDownloader.csproj
 ```
 
+## Format
+
+The repo uses [CSharpier](https://csharpier.com) (installed as a local .NET
+tool, pinned in `.config/dotnet-tools.json`).
+
+First clone — restore the local tools:
+
+```bash
+dotnet tool restore
+```
+
+Format everything (equivalent to `npm run format`):
+
+```bash
+dotnet csharpier format .
+```
+
+Check only (CI-friendly, exits non-zero on diffs):
+
+```bash
+dotnet csharpier check .
+```
+
 ## Publish a single-file binary
 
 **Windows (.exe)**

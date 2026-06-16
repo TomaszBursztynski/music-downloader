@@ -2,31 +2,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using YoutubeDLSharp;
-using YoutubeDLSharp.Options;
 
 namespace MusicDownloader.Services;
 
 public sealed class YouTubeMusicSource : IMusicSource
 {
-    private static readonly string[] MediaExtensions =
-    {
-        ".mp3",
-        ".m4a",
-        ".aac",
-        ".opus",
-        ".ogg",
-        ".webm",
-        ".mp4",
-        ".flac",
-        ".wav",
-        ".aiff",
-        ".aif",
-        ".mka",
-        ".mkv",
-        ".part",
-    };
-
     private readonly string _toolsDirectory;
     private string _ytDlpPath = string.Empty;
     private string _ffmpegPath = string.Empty;
@@ -89,7 +69,7 @@ public sealed class YouTubeMusicSource : IMusicSource
             }
             status?.Report("Pobieranie yt-dlp (jednorazowa konfiguracja)...");
             cancellationToken.ThrowIfCancellationRequested();
-            await Utils.DownloadYtDlp(_toolsDirectory).ConfigureAwait(false);
+            await YoutubeDLSharp.Utils.DownloadYtDlp(_toolsDirectory).ConfigureAwait(false);
             EnsureExecutable(_ytDlpPath);
         }
 
@@ -105,7 +85,7 @@ public sealed class YouTubeMusicSource : IMusicSource
             }
             status?.Report("Pobieranie ffmpeg (jednorazowa konfiguracja)...");
             cancellationToken.ThrowIfCancellationRequested();
-            await Utils.DownloadFFmpeg(_toolsDirectory).ConfigureAwait(false);
+            await YoutubeDLSharp.Utils.DownloadFFmpeg(_toolsDirectory).ConfigureAwait(false);
             EnsureExecutable(_ffmpegPath);
         }
 
@@ -114,7 +94,7 @@ public sealed class YouTubeMusicSource : IMusicSource
 
     public async Task<DownloadResult> DownloadAsync(
         DownloadRequest request,
-        IProgress<TrackProgress> progress,
+        IProgress<string> log,
         CancellationToken cancellationToken
     )
     {
@@ -131,100 +111,196 @@ public sealed class YouTubeMusicSource : IMusicSource
 
         Directory.CreateDirectory(outputFolder);
 
-        var ytdl = new YoutubeDL
-        {
-            YoutubeDLPath = _ytDlpPath,
-            FFmpegPath = _ffmpegPath,
-            OutputFolder = outputFolder,
-            OutputFileTemplate = "%(title)s.%(ext)s",
-            RestrictFilenames = false,
-            OverwriteFiles = false,
-            IgnoreDownloadErrors = true,
-        };
+        var args = BuildDownloadArgs(request, outputFolder);
 
-        var conversion = request.Format switch
-        {
-            AudioFormatChoice.Wav => AudioConversionFormat.Wav,
-            AudioFormatChoice.Flac => AudioConversionFormat.Flac,
-            AudioFormatChoice.Aiff => AudioConversionFormat.Best,
-            AudioFormatChoice.Mp3_320 => AudioConversionFormat.Mp3,
-            AudioFormatChoice.M4a => AudioConversionFormat.M4a,
-            AudioFormatChoice.BestOriginal => AudioConversionFormat.Best,
-            _ => AudioConversionFormat.Best,
-        };
+        log.Report($"$ yt-dlp {string.Join(' ', args)}");
 
-        var overrides = new OptionSet
-        {
-            Format = "bestaudio/best",
-            AudioQuality = 0,
-            EmbedThumbnail = request.EmbedThumbnail,
-            EmbedMetadata = request.EmbedMetadata,
-            IgnoreErrors = true,
-            NoOverwrites = true,
-            PostprocessorArgs =
-                request.Format == AudioFormatChoice.Mp3_320 ? "ffmpeg:-b:a 320k" : null,
-        };
-
-        if (request.Format == AudioFormatChoice.Aiff)
-        {
-            overrides.ExtractAudio = true;
-            overrides.AudioFormat = AudioConversionFormat.Best;
-            overrides.AddCustomOption("--audio-format", "aiff");
-        }
-
-        string? lastReportedTitle = null;
-
-        var ytProgress = new Progress<DownloadProgress>(p =>
-        {
-            if (p.State != DownloadState.Downloading && p.State != DownloadState.PostProcessing)
-                return;
-
-            var candidate = LooksLikeMediaPath(p.Data) ? p.Data : null;
-            if (candidate is null && lastReportedTitle is null)
-                return;
-
-            string title;
-            if (candidate is not null)
-            {
-                title = Path.GetFileNameWithoutExtension(candidate);
-                if (string.IsNullOrWhiteSpace(title))
-                    title = candidate;
-                lastReportedTitle = title;
-            }
-            else
-            {
-                title = lastReportedTitle!;
-            }
-
-            var status = p.State == DownloadState.Downloading ? "Pobieranie" : "Konwertowanie";
-            var pct = Math.Clamp(p.Progress * 100.0, 0.0, 100.0);
-            progress.Report(new TrackProgress(title, pct, status));
-        });
-
-        var result = await ytdl.RunAudioPlaylistDownload(
-                request.PlaylistOrTrackUrl,
-                format: conversion,
-                ct: cancellationToken,
-                progress: ytProgress,
-                overrideOptions: overrides
-            )
+        var (exitCode, downloadedFiles) = await RunYtDlpAsync(args, log, cancellationToken)
             .ConfigureAwait(false);
 
-        if (!result.Success)
+        if (exitCode != 0)
         {
-            var err = string.Join(Environment.NewLine, result.ErrorOutput ?? Array.Empty<string>());
-            progress.Report(new TrackProgress(lastReportedTitle ?? "", 0, "Błąd", Error: err));
-            return new DownloadResult(0, 1, request.OutputDirectory, Array.Empty<string>());
+            return new DownloadResult(0, 1, outputFolder, Array.Empty<string>());
         }
 
-        var paths = result.Data ?? Array.Empty<string>();
-        foreach (var path in paths)
+        return new DownloadResult(downloadedFiles.Count, 0, outputFolder, Array.Empty<string>());
+    }
+
+    private List<string> BuildDownloadArgs(DownloadRequest request, string outputFolder)
+    {
+        var args = new List<string>
         {
-            var name = Path.GetFileNameWithoutExtension(path);
-            progress.Report(new TrackProgress(name, 100, "Gotowe", FilePath: path));
+            "--ffmpeg-location",
+            _ffmpegPath,
+            "--paths",
+            outputFolder,
+            "--output",
+            "%(title)s.%(ext)s",
+            "--ignore-errors",
+            "--no-overwrites",
+            "--no-warnings",
+            "--newline",
+            "--progress",
+            "--extract-audio",
+            "--format",
+            "bestaudio/best",
+        };
+
+        if (request.EmbedThumbnail)
+            args.Add("--embed-thumbnail");
+        if (request.EmbedMetadata)
+            args.Add("--embed-metadata");
+
+        switch (request.Format)
+        {
+            case AudioFormatChoice.Mp3_320:
+                args.AddRange(
+                    new[]
+                    {
+                        "--audio-format",
+                        "mp3",
+                        "--audio-quality",
+                        "0",
+                        "--postprocessor-args",
+                        "ffmpeg:-b:a 320k",
+                    }
+                );
+                break;
+            case AudioFormatChoice.M4a:
+                args.AddRange(new[] { "--audio-format", "m4a", "--audio-quality", "0" });
+                break;
+            case AudioFormatChoice.Wav:
+                args.AddRange(new[] { "--audio-format", "wav" });
+                break;
+            case AudioFormatChoice.Flac:
+                args.AddRange(new[] { "--audio-format", "flac" });
+                break;
+            case AudioFormatChoice.Aiff:
+                args.AddRange(new[] { "--audio-format", "aiff" });
+                break;
+            case AudioFormatChoice.BestOriginal:
+                args.AddRange(new[] { "--audio-format", "best" });
+                break;
         }
 
-        return new DownloadResult(paths.Length, 0, request.OutputDirectory, Array.Empty<string>());
+        args.Add("--print");
+        args.Add("after_move:filepath");
+
+        args.Add(request.PlaylistOrTrackUrl);
+        return args;
+    }
+
+    private async Task<(int ExitCode, List<string> Files)> RunYtDlpAsync(
+        List<string> args,
+        IProgress<string> log,
+        CancellationToken cancellationToken
+    )
+    {
+        var psi = new ProcessStartInfo
+        {
+            FileName = _ytDlpPath,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
+        };
+        foreach (var a in args)
+            psi.ArgumentList.Add(a);
+
+        using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+
+        var files = new List<string>();
+
+        proc.Start();
+
+        var stdoutTask = PumpStreamAsync(
+            proc.StandardOutput,
+            line =>
+            {
+                if (LooksLikeMediaPath(line) && File.Exists(line))
+                {
+                    files.Add(line);
+                    log.Report($"✓ {Path.GetFileName(line)}");
+                    return;
+                }
+                log.Report(line);
+            },
+            cancellationToken
+        );
+
+        var stderrTask = PumpStreamAsync(
+            proc.StandardError,
+            line => log.Report(line),
+            cancellationToken
+        );
+
+        try
+        {
+            await proc.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            try
+            {
+                if (!proc.HasExited)
+                    proc.Kill(entireProcessTree: true);
+            }
+            catch { }
+            throw;
+        }
+
+        return (proc.ExitCode, files);
+    }
+
+    private static async Task PumpStreamAsync(
+        StreamReader reader,
+        Action<string> onLine,
+        CancellationToken cancellationToken
+    )
+    {
+        var buffer = new char[1024];
+        var current = new System.Text.StringBuilder();
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            int read;
+            try
+            {
+                read = await reader
+                    .ReadAsync(buffer.AsMemory(), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            if (read == 0)
+                break;
+
+            for (int i = 0; i < read; i++)
+            {
+                var ch = buffer[i];
+                if (ch == '\n' || ch == '\r')
+                {
+                    if (current.Length > 0)
+                    {
+                        onLine(current.ToString());
+                        current.Clear();
+                    }
+                }
+                else
+                {
+                    current.Append(ch);
+                }
+            }
+        }
+
+        if (current.Length > 0)
+            onLine(current.ToString());
     }
 
     private async Task<string> ResolveOutputFolderAsync(
@@ -361,25 +437,31 @@ public sealed class YouTubeMusicSource : IMusicSource
         return string.IsNullOrWhiteSpace(cleaned) ? "Playlist" : cleaned;
     }
 
-    private static bool LooksLikeMediaPath(string? value)
+    private static readonly string[] MediaExtensions =
+    {
+        ".mp3",
+        ".m4a",
+        ".aac",
+        ".opus",
+        ".ogg",
+        ".webm",
+        ".mp4",
+        ".flac",
+        ".wav",
+        ".aiff",
+        ".aif",
+        ".mka",
+        ".mkv",
+    };
+
+    private static bool LooksLikeMediaPath(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return false;
-
-        var s = value.Trim();
-        if (s.StartsWith("[", StringComparison.Ordinal))
-            return false;
-        if (s.StartsWith("WARNING:", StringComparison.OrdinalIgnoreCase))
-            return false;
-        if (s.StartsWith("ERROR:", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        var lower = s.ToLowerInvariant();
+        var lower = value.Trim().ToLowerInvariant();
         foreach (var ext in MediaExtensions)
-        {
             if (lower.EndsWith(ext, StringComparison.Ordinal))
                 return true;
-        }
         return false;
     }
 }
